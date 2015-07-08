@@ -27,7 +27,6 @@ def _choose_word(examples, words):
         if p + n == 0: return 0
         a = p / (p + n)
         b = n / (p + n)
-        #print(a, b)
         return -1 * sum(n * math.log2(n) for n in (a, b) if n > 0)
 
     def remainder(word, p, n):
@@ -62,7 +61,7 @@ def _choose_word(examples, words):
         if word_ig > best_ig:
             best_ig = word_ig
             best_word = word
-    return best_word
+    return best_word, best_ig
 
 
 def learn_decision_tree(examples, words, depth=1, default=None):
@@ -82,7 +81,7 @@ def learn_decision_tree(examples, words, depth=1, default=None):
         # No more attributes
         return Classifier(mode)
     # Best word to choose
-    best_word = _choose_word(examples, words)
+    best_word, best_ig = _choose_word(examples, words)
 
     # Examples containing (True) or not containing (False) the word
     true_examples = dict()
@@ -96,7 +95,7 @@ def learn_decision_tree(examples, words, depth=1, default=None):
                                        depth=depth - 1, default=mode)
     false_subtree = learn_decision_tree(false_examples, new_words,
                                         depth=depth - 1, default=mode)
-    return DecisionNode(best_word, true_subtree, false_subtree)
+    return DecisionNode(best_word, best_ig, true_subtree, false_subtree)
 
 
 class Classifier():
@@ -117,10 +116,11 @@ class Classifier():
 
 class DecisionNode():
     ''' A test/decision node. '''
-    def __init__(self, word, true_child, false_child):
+    def __init__(self, word, ig, true_child, false_child):
         self._word = word
         self.true_child = true_child
         self.false_child = false_child
+        self._ig = ig
 
     def classify(self, article):
         ''' Classify an article (recursively). '''
@@ -130,11 +130,11 @@ class DecisionNode():
 
     def _to_string(self, depth):
         pad = '-' * depth
-        s = pad + 'Decision on word: {}'.format(get_word(self._word))
+        s = pad + ('Decision on word: {} (ig: {})'
+                   .format(get_word(self._word), self._ig))
         s += '\n' + pad + 'True\n' + self.true_child._to_string(depth + 1)
         s += '\n' + pad + 'False\n' + self.false_child._to_string(depth + 1)
         return s
-
 
     def __str__(self):
         return self._to_string(0)
@@ -165,31 +165,47 @@ def main():
     examples, words = get_data('train')
     test_examples, _ = get_data('test')
 
-
     num_test = len(test_examples)
     num_train = len(examples)
+
+    decisionTree = learn_decision_tree(examples, words, depth=5)
+    print(decisionTree)
+    return
     depth = 1
+    best_depth = 1
+    best_test = 0
     while True:
+        # Build a tree for this depth
         decisionTree = learn_decision_tree(examples, words, depth=depth)
         correct = 0
-        testCorrect = 0
+        test_correct = 0
+        # Check the training data
         for id, ex in examples.items():
             label, article = ex
             decision = decisionTree.classify(article)
             if decision == label:
                 correct += 1
+
+        # Check the test data
         for id, ex in test_examples.items():
             label, article = ex
             decision = decisionTree.classify(article)
             if decision == label:
-                testCorrect += 1
+                test_correct += 1
         print('At depth {} we got {} correct on training'
               .format(depth, correct / num_train))
         print('At depth {} we got {} correct on test data'
-              .format(depth, testCorrect / num_test))
+              .format(depth, test_correct / num_test))
+        if test_correct > best_test:
+            best_test = test_correct
+            best_depth = depth
         print('At depth {} we got {} correct in total'
-              .format(depth, (correct + testCorrect) / (num_train + num_test)))
+              .format(depth, (correct + test_correct) / (num_train + num_test)))
+        if correct == num_train:
+            break
         depth += 1
+    print('best depth is {}'.format(best_depth))
+    print(learn_decision_tree(examples, words, depth=best_depth))
 
 if __name__ == '__main__':
     main()
