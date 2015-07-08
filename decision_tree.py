@@ -168,9 +168,6 @@ def main():
     num_test = len(test_examples)
     num_train = len(examples)
 
-    decisionTree = learn_decision_tree(examples, words, depth=5)
-    print(decisionTree)
-    return
     depth = 1
     best_depth = 1
     best_test = 0
