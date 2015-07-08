@@ -20,9 +20,6 @@ class NaiveBayesClassifier():
         for word, freqs in self._word_freqs.items():
             contained = word in article
             f = freqs[contained][label]
-            if f == 0:
-                ans = float('-inf')
-                continue
             ans += math.log(freqs[contained][label])
         return ans
 
@@ -39,36 +36,35 @@ class NaiveBayesClassifier():
 
 def learn_bayes_net(examples, words):
     ''' Learn a bayesian network lol. '''
-    label_freqs = defaultdict(int)
+    label_freqs = dict()
     word_freqs = dict()
+    VALS = (True, False)
+    LABELS = (1, 2)
     for word in words:
         word_freqs[word] = dict()
-        word_freqs[word][True] = defaultdict(int)
-        word_freqs[word][False] = defaultdict(int)
+        for t in VALS:
+            word_freqs[word][t] = defaultdict(int)
 
     for label, article in examples.values():
+        if label not in label_freqs:
+            label_freqs[label] = 0
         label_freqs[label] += 1
         for word in words:
             t = word in article
+            if label not in word_freqs[word][t]:
+                word_freqs[word][t][label] = 0
             word_freqs[word][t][label] += 1
 
     for word in words:
         freq = word_freqs[word]
-        for t in (True, False):
-            for label in freq[t]:
+        for t in VALS:
+            for label in LABELS:
                 freq[t][label] = (freq[t][label] + 1) / (label_freqs[label] + 2)
-                #if freq[t][label] == 1:
-                    #print('got one', get_word(word), label, t)
 
     for label in label_freqs:
         # Make the labels into frequencies as well
-        label_freqs[label] /= len(examples)
+        label_freqs[label] = (label_freqs[label] + 1) / (len(examples) + 2)
 
-    #for word, freq in word_freqs.items():
-    #    print(get_word(word))
-    #    print('\tChance of 1: True: {} False: {}'.format(freq[True][1],freq[False][1]))
-    #    print('\tChance of 2: True: {} False: {}'.format(freq[True][2],freq[False][2]))
-    #    print('')
     return NaiveBayesClassifier(label_freqs, word_freqs)
 
 
