@@ -140,45 +140,55 @@ class DecisionNode():
         return self._to_string(0)
 
 
-def main():
+def get_data(name):
     Example = namedtuple('Example', ['label', 'article'])
     # Create a decision tree with given maximum depth
     words = set()
     articles = defaultdict(set)
     examples = dict()
     # An article will be a set() of words (ids)
-    with open('trainData.txt') as f:
+    with open(name+'Data.txt') as f:
         for article_id, word_id in map(lambda l: map(int, l.split()), f):
             articles[article_id].add(word_id)
             # All words :O
             words.add(word_id)
 
-    with open('trainLabel.txt') as f:
+    with open(name+'Label.txt') as f:
         for article_id, label in enumerate(f):
             article_id += 1
             examples[article_id] = Example(int(label), articles[article_id])
 
-    decisionTree = learn_decision_tree(examples, words, depth=5)
-    print(decisionTree)
-    return
-    depth = 20
+    return examples, words
+
+
+def main():
+    examples, words = get_data('train')
+    test_examples, _ = get_data('test')
+
+
+    num_test = len(test_examples)
+    num_train = len(examples)
+    depth = 1
     while True:
         decisionTree = learn_decision_tree(examples, words, depth=depth)
-        print('Learned the decision tree with depth {}'.format(depth))
         correct = 0
-        incorrect = 0
+        testCorrect = 0
         for id, ex in examples.items():
             label, article = ex
             decision = decisionTree.classify(article)
             if decision == label:
-                right = 'Correct'
                 correct += 1
-            else:
-                right = 'Incorrect'
-                print('{}! Decided article {} as {}'.format(right, id, decision))
-                incorrect += 1
-        print('At depth {} we got {} correct and {} incorrect'
-              .format(depth, correct, incorrect))
+        for id, ex in test_examples.items():
+            label, article = ex
+            decision = decisionTree.classify(article)
+            if decision == label:
+                testCorrect += 1
+        print('At depth {} we got {} correct on training'
+              .format(depth, correct / num_train))
+        print('At depth {} we got {} correct on test data'
+              .format(depth, testCorrect / num_test))
+        print('At depth {} we got {} correct in total'
+              .format(depth, (correct + testCorrect) / (num_train + num_test)))
         depth += 1
 
 if __name__ == '__main__':
