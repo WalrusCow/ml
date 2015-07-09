@@ -65,6 +65,17 @@ def learn_bayes_net(examples, words):
         # Make the labels into frequencies as well
         label_freqs[label] = (label_freqs[label] + 1) / (len(examples) + 2)
 
+    word_discrimination = []
+    for word in words:
+        f = word_freqs[word][True]
+        disc = abs(math.log(f[1]) - math.log(f[2]))
+        word_discrimination.append((word, disc))
+    word_discrimination.sort(key=operator.itemgetter(1), reverse=True)
+    for idx, t in enumerate(word_discrimination[:10]):
+        word, disc = t
+        print('#{}: {} ({})'.format(idx, get_word(word), disc))
+
+
     return NaiveBayesClassifier(label_freqs, word_freqs)
 
 
